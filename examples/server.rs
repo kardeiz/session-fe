@@ -64,8 +64,8 @@ fn set(req: &mut Request) -> IronResult<Response> {
 
     map.insert(format!("{}", time::now().rfc3339()), "now".to_json());
 
-    iexpect!(req.extensions.get::<SessionUtil>())
-        .set(map);
+    iexpect!(req.extensions.get::<SessionUtil<_>>())
+        .insert(map);
 
     Ok(res)
 }
@@ -74,7 +74,7 @@ fn get(req: &mut Request) -> IronResult<Response> {
 
     let mut res = Response::new();
 
-    let session = iexpect!(req.extensions.get::<SessionUtil>()).get();
+    let session = iexpect!(req.extensions.get::<SessionUtil<json::Object>>()).get();
 
     res
         .set_mut(status::Ok)
@@ -86,7 +86,7 @@ fn get(req: &mut Request) -> IronResult<Response> {
 
 
 fn main() {
-    let sessioning = SessionBuilder::new(Helper::key(None));
+    let sessioning = SessionBuilder::<json::Object>::new(Helper::key(None));
 
     let mut router = Router::new();
     router.get("/set", set);

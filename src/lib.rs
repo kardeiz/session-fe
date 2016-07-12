@@ -1,46 +1,46 @@
-extern crate rustc_serialize;
 extern crate iron;
 
 use std::collections::HashMap;
 
 use std::sync::{Arc, RwLock};
 
+use std::fmt::Debug;
+use std::any::Any;
+
 use iron::prelude::*;
 use iron::{typemap, BeforeMiddleware};
 
-use rustc_serialize::json;
-
-impl typemap::Key for Util { type Value = Self; }
+impl<T: Clone + Debug + Any> typemap::Key for Util<T> { type Value = Util<T>; }
 
 #[derive(Debug, Clone)]
-struct Store(Arc<RwLock<HashMap<String, json::Object>>>);
+struct Store<T: Clone + Debug>(Arc<RwLock<HashMap<String, T>>>);
 
-impl Store {
+impl<T: Clone + Debug> Store<T> {
   
     pub fn new() -> Self {
-        Store(Arc::new(RwLock::new( HashMap::new())))
+        Store(Arc::new(RwLock::new(HashMap::new())))
     }
 
-    pub fn get(&self, key: &str) -> Option<json::Object> {
+    pub fn get(&self, key: &str) -> Option<T> {
         self.0.read().iter()
             .filter_map(|g| (*g).get(key) )
             .map(|v| v.clone() )
             .next()
     }
 
-    fn insert(&self, key: String, value: json::Object) {
+    fn insert(&self, key: String, value: T) {
         if let Ok(mut lock) = self.0.write() {
             (*lock).insert(key, value);
         }
     }
 }
 
-pub struct Builder {
+pub struct Builder<T: Clone + Debug> {
     key: Box<Fn(&mut Request) -> String + Send + Sync>,
-    store: Store
+    store: Store<T>
 }
 
-impl Builder {
+impl<T: Clone + Debug> Builder<T> {
 
     pub fn new(key: Box<Fn(&mut Request) -> String + Send + Sync>) -> Self {
         Builder { key: key, store: Store::new() }
@@ -48,28 +48,28 @@ impl Builder {
 
 }
 
-pub struct Util {
+pub struct Util<T: Clone + Debug> {
     key: String,
-    store: Store
+    store: Store<T>
 }
 
-impl Util {
+impl<T: Clone + Debug> Util<T> {
 
-    pub fn get(&self) -> Option<json::Object> {
+    pub fn get(&self) -> Option<T> {
         self.store.get(&self.key)
     }
 
-    pub fn set(&self, value: json::Object) {
+    pub fn insert(&self, value: T) {
         self.store.insert(self.key.clone(), value);
     }
 
 }
 
-impl BeforeMiddleware for Builder {
+impl<T: Clone + Debug + Send + Sync + Any> BeforeMiddleware for Builder<T> {
     fn before(&self, req: &mut Request) -> IronResult<()> {
         let key = (self.key)(req);
         let util = Util { key: key, store: self.store.clone() };
-        req.extensions.insert::<Util>(util);
+        req.extensions.insert::<Util<T>>(util);
         Ok(())
     }
 }
