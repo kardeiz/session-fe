@@ -59,7 +59,7 @@ impl<T: Clone + Debug> Util<T> {
         self.store.get(&self.key)
     }
 
-    pub fn insert(&self, value: T) {
+    pub fn set(&self, value: T) {
         self.store.insert(self.key.clone(), value);
     }
 

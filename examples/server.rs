@@ -65,7 +65,7 @@ fn set(req: &mut Request) -> IronResult<Response> {
     map.insert(format!("{}", time::now().rfc3339()), "now".to_json());
 
     iexpect!(req.extensions.get::<SessionUtil<_>>())
-        .insert(map);
+        .set(map);
 
     Ok(res)
 }
