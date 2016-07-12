@@ -24,7 +24,7 @@ impl<T: Clone + Debug> Store<T> {
     pub fn get(&self, key: &str) -> Option<T> {
         self.0.read().iter()
             .filter_map(|g| (*g).get(key) )
-            .map(|v| v.clone() )
+            .cloned()
             .next()
     }
 
