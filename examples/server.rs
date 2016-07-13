@@ -19,10 +19,10 @@ use router::Router;
 use cookie_fe::{Util as CookieUtil, Builder as CookieBuilder, CookiePair};
 use session_fe::{Util as SessionUtil, Builder as SessionBuilder};
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, ToJson};
-use rustc_serialize::hex::{self, ToHex};
+use rustc_serialize::hex::ToHex;
 
 const KEY: &'static [u8] = b"4b8eee793a846531d6d95dd66ae48319";
 
@@ -32,7 +32,7 @@ impl Helper {
 
     pub fn random() -> String {
         let mut v = [0; 16];
-        rand::thread_rng().fill_bytes(&mut v);
+        thread_rng().fill_bytes(&mut v);
         v.to_hex()
     }
 
@@ -58,7 +58,7 @@ impl Helper {
 
 fn set(req: &mut Request) -> IronResult<Response> {
 
-    let mut res = Response::with((status::Ok, "Set session"));
+    let res = Response::with((status::Ok, "Set session"));
 
     let mut map = BTreeMap::new();
 
@@ -89,13 +89,16 @@ fn main() {
     let sessioning = SessionBuilder::<json::Object>::new(Helper::key(None));
 
     let mut router = Router::new();
-    router.get("/set", set);
-    router.get("/get", get);
+    
+    router
+        .get("/set", set)
+        .get("/get", get);
+
     let mut chain = Chain::new(router);
 
     chain.link_before(sessioning);
 
-    let wrapped = CookieBuilder(KEY).around(Box::new(chain));
+    let wrapped = CookieBuilder::new(KEY).around(Box::new(chain));
 
     Iron::new(wrapped).http("0.0.0.0:3000").unwrap();
 }
