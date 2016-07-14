@@ -73,3 +73,40 @@ impl<T: Clone + Debug + Send + Sync + Any> BeforeMiddleware for Builder<T> {
         Ok(())
     }
 }
+
+#[cfg(feature="helpers")]
+pub mod helpers {
+    
+    extern crate rand;
+    extern crate rustc_serialize;
+    extern crate cookie_fe;
+
+    use self::rand::{thread_rng, Rng};
+    use self::cookie_fe::{Util as CookieUtil, CookiePair};
+    use self::rustc_serialize::hex::ToHex;
+    use super::iron::Request;
+
+    fn random() -> String {
+        let mut v = [0; 16];
+        thread_rng().fill_bytes(&mut v);
+        v.to_hex()
+    }
+
+    pub fn key_gen(sid: Option<&'static str>) -> Box<Fn(&mut Request) -> String + Send + Sync> {
+        let out = move |req: &mut Request| -> String {
+            let jar = req.extensions.get_mut::<CookieUtil>()
+                .and_then(|x| x.jar() )
+                .expect("No cookie jar");
+            let sid = sid.unwrap_or("IRONSID");
+            if let Some(cookie) = jar.signed().find(sid) {
+                cookie.value
+            } else {
+                let key = random();
+                let cookie = CookiePair::new(sid.to_owned(), key.clone());
+                jar.signed().add(cookie);
+                key
+            }
+        };
+        Box::new(out)        
+    }
+}

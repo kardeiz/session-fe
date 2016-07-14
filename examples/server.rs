@@ -17,7 +17,7 @@ use iron::{status, AroundMiddleware};
 use router::Router;
 
 use cookie_fe::{Util as CookieUtil, Builder as CookieBuilder, CookiePair};
-use session_fe::{Util as SessionUtil, Builder as SessionBuilder};
+use session_fe::{Util as SessionUtil, Builder as SessionBuilder, helpers as session_helpers};
 
 use std::collections::BTreeMap;
 
@@ -25,35 +25,6 @@ use rustc_serialize::json::{self, ToJson};
 use rustc_serialize::hex::ToHex;
 
 const KEY: &'static [u8] = b"4b8eee793a846531d6d95dd66ae48319";
-
-pub struct Helper;
-
-impl Helper {
-
-    pub fn random() -> String {
-        let mut v = [0; 16];
-        thread_rng().fill_bytes(&mut v);
-        v.to_hex()
-    }
-
-    fn key(sid: Option<&'static str>) -> Box<Fn(&mut Request) -> String + Send + Sync> {
-        let out = move |req: &mut Request| -> String {
-            let jar = req.extensions.get_mut::<CookieUtil>()
-                .and_then(|x| x.jar() )
-                .expect("No cookie jar");
-            let sid = sid.unwrap_or("IRONSID");
-            if let Some(cookie) = jar.signed().find(sid) {
-                cookie.value
-            } else {
-                let key = Self::random();
-                let cookie = CookiePair::new(sid.to_owned(), key.clone());
-                jar.signed().add(cookie);
-                key
-            }
-        };
-        Box::new(out)        
-    }
-}
 
 
 fn set(req: &mut Request) -> IronResult<Response> {
@@ -86,7 +57,7 @@ fn get(req: &mut Request) -> IronResult<Response> {
 
 
 fn main() {
-    let sessioning = SessionBuilder::<json::Object>::new(Helper::key(None));
+    let sessioning = SessionBuilder::<json::Object>::new(session_helpers::key_gen(None));
 
     let mut router = Router::new();
     
