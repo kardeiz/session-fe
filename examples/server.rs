@@ -35,10 +35,7 @@ fn set(req: &mut Request) -> IronResult<Response> {
 
     let session_util = iexpect!(req.extensions.get::<SessionUtil<json::Object>>());
 
-    let mut map = session_util
-        .get()
-        .map(|x| (*x).clone() )
-        .unwrap_or_else(|| json::Object::new());
+    let mut map = json::Object::new();
 
     map.insert(format!("{}", time::now().rfc3339()), "now".to_json());
 
