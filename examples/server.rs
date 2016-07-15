@@ -19,6 +19,8 @@ use router::Router;
 use cookie_fe::{Util as CookieUtil, Builder as CookieBuilder, CookiePair};
 use session_fe::{Util as SessionUtil, Builder as SessionBuilder, helpers as session_helpers};
 
+use std::sync::Arc;
+
 use std::collections::BTreeMap;
 
 use rustc_serialize::json::{self, ToJson};
@@ -31,12 +33,19 @@ fn set(req: &mut Request) -> IronResult<Response> {
 
     let res = Response::with((status::Ok, "Set session"));
 
-    let mut map = BTreeMap::new();
+    let session_util = iexpect!(req.extensions.get::<SessionUtil<json::Object>>());
+
+    let mut map = session_util
+        .get()
+        .map(|x| (*x).clone() )
+        .unwrap_or_else(|| json::Object::new());
 
     map.insert(format!("{}", time::now().rfc3339()), "now".to_json());
 
-    iexpect!(req.extensions.get::<SessionUtil<_>>())
-        .set(map);
+    session_util.set(map);
+
+    // iexpect!(req.extensions.get::<SessionUtil<_>>())
+    //     .set(map);
 
     Ok(res)
 }
