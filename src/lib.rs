@@ -1,7 +1,6 @@
 extern crate iron;
 
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 
 use std::sync::{Arc, RwLock};
 use std::convert::Into;
@@ -36,13 +35,11 @@ impl<T: Clone + Debug> Store<T> {
         }
     }
 
-    // fn mutate<F: Fn(&mut T)>(&self, key: &str, cls: F) {
-    //     if let Ok(mut lock) = self.0.write() {
-    //         if let Some(obj) = (*lock).get_mut(key) {
-    //             cls(obj);
-    //         }
-    //     }
-    // }
+    fn remove(&self, key: &str) {
+        if let Ok(mut lock) = self.0.write() {
+            (*lock).remove(key);
+        }
+    }
 
 }
 
@@ -74,9 +71,9 @@ impl<T: Clone + Debug> Util<T> {
         self.store.insert(self.key.clone(), value);
     }
 
-    // pub fn mutate<F: Fn(&mut T)>(&self, cls: F) {
-    //     self.store.mutate(&self.key, cls);
-    // }
+    pub fn destroy(&self) {
+        self.store.remove(&self.key);
+    }
 
 }
 
